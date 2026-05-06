@@ -1,0 +1,10 @@
+services:
+  firefox-sync-bridge:
+    image: ghcr.io/Malclir/firefox-sync-bridge:latest
+    container_name: firefox-sync-bridge
+    restart: unless-stopped
+    volumes:
+      - /mnt/user/appdata/firefox-sync-bridge:/config
+    environment:
+      - BRIDGE_CONFIG=/config/config.json
+    command: ["loop"]

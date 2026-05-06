@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local Firefox Sync bridge runtime files.
+config.json
+config.local.json
+sessions/
+state.json
+logs/
+*.secret
+
+# Local ffsclient/test artifacts.
+.tmp-ffsclient/
+*.log
+*.tmp
+
+# Local Docker/test artifacts.
+.docker-test-config/
+docker-compose.override.yml
+
+# OS/editor noise.
+.DS_Store
+.idea/
+.vscode/

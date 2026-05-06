@@ -1,0 +1,40 @@
+{
+  "dry_run": true,
+  "poll_seconds": 300,
+  "state_path": "/config/state.json",
+  "ffsclient_path": "/usr/local/bin/ffsclient",
+  "accounts": {
+    "main": {
+      "sessionfile": "/config/sessions/main.secret"
+    },
+    "second": {
+      "sessionfile": "/config/sessions/second.secret"
+    }
+  },
+  "collections": {
+    "passwords": {
+      "enabled": true,
+      "sync_deletes": false
+    },
+    "bookmarks": {
+      "enabled": true,
+      "sync_deletes": false
+    },
+    "addresses": {
+      "enabled": true,
+      "sync_deletes": false
+    },
+    "creditcards": {
+      "enabled": true,
+      "sync_deletes": false
+    },
+    "forms": {
+      "enabled": false,
+      "sync_deletes": false
+    },
+    "history": {
+      "enabled": false,
+      "sync_deletes": false
+    }
+  }
+}

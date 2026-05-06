@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>firefox-sync-bridge</Name>
+  <Repository>ghcr.io/OWNER/firefox-sync-bridge:latest</Repository>
+  <Registry>https://ghcr.io/OWNER/firefox-sync-bridge</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <Overview>Bridge selected Firefox Sync collections between two Mozilla accounts using ffsclient. Starts in dry-run mode by default.</Overview>
+  <Category>Tools:</Category>
+  <WebUI/>
+  <TemplateURL/>
+  <Icon/>
+  <ExtraParams/>
+  <PostArgs>loop</PostArgs>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="Appdata" Target="/config" Default="/mnt/user/appdata/firefox-sync-bridge" Mode="rw" Description="Persistent config and Firefox Sync session files. Treat this folder like a password vault." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/firefox-sync-bridge</Config>
+  <Config Name="Persisted Log File" Target="LOG_FILE" Default="/config/logs/bridge.log" Mode="" Description="Also write bridge logs to this file under appdata. Unraid Docker logs still show stdout." Type="Variable" Display="always" Required="false" Mask="false">/config/logs/bridge.log</Config>
+  <Config Name="Dry Run" Target="BRIDGE_DRY_RUN" Default="true" Mode="" Description="true prints the merge plan without writing to either account. Set false only after dry-run output looks correct." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Poll Seconds" Target="POLL_SECONDS" Default="300" Mode="" Description="How often to poll Firefox Sync for changes." Type="Variable" Display="always" Required="true" Mask="false">300</Config>
+  <Config Name="Sync Passwords" Target="ENABLE_PASSWORDS" Default="true" Mode="" Description="Bridge saved logins." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Sync Bookmarks" Target="ENABLE_BOOKMARKS" Default="true" Mode="" Description="Bridge bookmarks." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Sync Addresses" Target="ENABLE_ADDRESSES" Default="true" Mode="" Description="Bridge saved addresses." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Sync Credit Cards" Target="ENABLE_CREDITCARDS" Default="true" Mode="" Description="Bridge saved payment methods." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Sync Forms" Target="ENABLE_FORMS" Default="false" Mode="" Description="Bridge form autocomplete records. This can be a large collection." Type="Variable" Display="advanced" Required="true" Mask="false">false</Config>
+  <Config Name="Sync History" Target="ENABLE_HISTORY" Default="false" Mode="" Description="Bridge browsing history. Usually leave disabled." Type="Variable" Display="advanced" Required="true" Mask="false">false</Config>
+</Container>
