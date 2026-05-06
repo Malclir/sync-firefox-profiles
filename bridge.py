@@ -124,10 +124,11 @@ def list_records(
 def write_record(
     cfg: dict[str, Any], account: Account, collection: str, record: Record
 ) -> None:
+    record_arg = f"--!arg={record.id}" if record.id.startswith("-") else record.id
     run_ffs(
         cfg,
         account,
-        ["update", collection, record.id, "--data-stdin", "--create"],
+        ["update", collection, record_arg, "--data-stdin", "--create"],
         input_text=record.payload_json,
     )
 
