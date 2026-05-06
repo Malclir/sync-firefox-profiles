@@ -27,7 +27,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository_owner }}/firefox-sync-bridge
+          images: ghcr.io/malclir/firefox-sync-bridge
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=
