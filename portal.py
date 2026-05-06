@@ -7,13 +7,14 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, Response, redirect, render_template, request, url_for
 
 import bridge
 
 
 CONFIG_PATH = Path(os.environ.get("BRIDGE_CONFIG", "/config/config.json"))
 SESSION_DIR = Path(os.environ.get("SESSION_DIR", "/config/sessions"))
+LOG_DIR = Path(os.environ.get("LOG_DIR", "/config/logs"))
 FFSCLIENT = os.environ.get("FFSCLIENT_PATH", "/usr/local/bin/ffsclient")
 DEFAULT_COLLECTIONS = ("passwords", "bookmarks", "addresses", "creditcards", "forms", "history")
 
@@ -49,6 +50,18 @@ def account_status(name: str, cfg: dict[str, Any]) -> str:
         return f"error: {exc}".splitlines()[0]
 
 
+def login_log_path(name: str) -> Path:
+    return LOG_DIR / f"login-{name}.log"
+
+
+def login_result(name: str) -> str:
+    path = login_log_path(name)
+    if not path.exists():
+        return ""
+    lines = path.read_text(errors="replace").splitlines()
+    return lines[-1] if lines else ""
+
+
 def status_class(status: str) -> str:
     if status == "ok":
         return "ok"
@@ -59,7 +72,9 @@ def status_class(status: str) -> str:
 
 def login_account(name: str, email: str, password: str, otp: str) -> None:
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
     sessionfile = SESSION_DIR / f"{name}.secret"
+    log_path = login_log_path(name)
     cmd = [
         FFSCLIENT,
         "login",
@@ -79,11 +94,14 @@ def login_account(name: str, email: str, password: str, otp: str) -> None:
         proc = login_procs.get(name)
         if proc and proc.poll() is None:
             raise RuntimeError(f"{name} login is already running")
+        log_file = log_path.open("w")
+        log_file.write(f"Starting login for {name}: {email}\n")
+        log_file.flush()
         login_procs[name] = subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
             text=True,
         )
 
@@ -98,6 +116,7 @@ def dashboard(message: str = ""):
         accounts=accounts,
         routes=cfg.get("routes", []),
         statuses=statuses,
+        login_results={name: login_result(name) for name in accounts},
         status_class=status_class,
         collections=DEFAULT_COLLECTIONS,
         message=message,
@@ -140,6 +159,14 @@ def remove_account():
     save_config(cfg)
     set_message("Account removed from config")
     return redirect(url_for("index"))
+
+
+@app.get("/accounts/<name>/login-log")
+def login_log(name: str):
+    path = login_log_path(name)
+    if not path.exists():
+        return Response("No login log.\n", mimetype="text/plain")
+    return Response(path.read_text(errors="replace"), mimetype="text/plain")
 
 
 @app.post("/routes/add")

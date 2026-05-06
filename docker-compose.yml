@@ -4,7 +4,10 @@ services:
       context: .
     container_name: firefox-sync-bridge
     restart: unless-stopped
+    ports:
+      - "8097:8080"
     volumes:
       - /mnt/user/appdata/firefox-sync-bridge:/config
     environment:
       - BRIDGE_CONFIG=/config/config.json
+      - WEB_ENABLED=true
