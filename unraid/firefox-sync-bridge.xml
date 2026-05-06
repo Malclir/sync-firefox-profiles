@@ -11,7 +11,7 @@
   <Project/>
   <Overview>Bridge selected Firefox Sync collections between two Mozilla accounts using ffsclient. Starts in dry-run mode by default.</Overview>
   <Category>Tools:</Category>
-  <WebUI/>
+  <WebUI>http://[IP]:[PORT:8080]</WebUI>
   <TemplateURL/>
   <Icon/>
   <ExtraParams/>
@@ -22,6 +22,8 @@
   <DonateLink/>
   <Requires/>
   <Config Name="Appdata" Target="/config" Default="/mnt/user/appdata/firefox-sync-bridge" Mode="rw" Description="Persistent config and Firefox Sync session files. Treat this folder like a password vault." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/firefox-sync-bridge</Config>
+  <Config Name="Web UI" Target="8080" Default="8097" Mode="tcp" Description="LAN-only dashboard. Container listens on 8080; choose any free host port." Type="Port" Display="always" Required="true" Mask="false">8097</Config>
+  <Config Name="Web Enabled" Target="WEB_ENABLED" Default="true" Mode="" Description="Enable the LAN dashboard." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
   <Config Name="Persisted Log File" Target="LOG_FILE" Default="/config/logs/bridge.log" Mode="" Description="Also write bridge logs to this file under appdata. Unraid Docker logs still show stdout." Type="Variable" Display="always" Required="false" Mask="false">/config/logs/bridge.log</Config>
   <Config Name="Dry Run" Target="BRIDGE_DRY_RUN" Default="true" Mode="" Description="true prints the merge plan without writing to either account. Set false only after dry-run output looks correct." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
   <Config Name="Poll Seconds" Target="POLL_SECONDS" Default="300" Mode="" Description="How often to poll Firefox Sync for changes." Type="Variable" Display="always" Required="true" Mask="false">300</Config>

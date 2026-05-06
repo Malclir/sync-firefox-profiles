@@ -1,6 +1,12 @@
 {
   "dry_run": true,
   "poll_seconds": 300,
+  "web": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8080,
+    "auth_token": ""
+  },
   "state_path": "/config/state.json",
   "ffsclient_path": "/usr/local/bin/ffsclient",
   "accounts": {
@@ -11,6 +17,24 @@
       "sessionfile": "/config/sessions/second.secret"
     }
   },
+  "routes": [
+    {
+      "name": "main-second",
+      "source": "main",
+      "target": "second",
+      "bidirectional": true,
+      "enabled": true,
+      "dry_run": null,
+      "collections": {
+        "passwords": true,
+        "bookmarks": true,
+        "addresses": true,
+        "creditcards": true,
+        "forms": false,
+        "history": false
+      }
+    }
+  ],
   "collections": {
     "passwords": {
       "enabled": true,

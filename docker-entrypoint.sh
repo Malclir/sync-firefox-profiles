@@ -7,6 +7,10 @@ fi
 
 python /app/bootstrap.py run
 
+if [ "${WEB_ENABLED:-true}" != "false" ]; then
+  python -u /app/portal.py &
+fi
+
 run_bridge() {
   if [ -n "${LOG_FILE:-}" ]; then
     mkdir -p "$(dirname "$LOG_FILE")"

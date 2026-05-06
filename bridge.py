@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_CONFIG = Path(os.environ.get("BRIDGE_CONFIG", "/config/config.json"))
+DEFAULT_COLLECTIONS = ("passwords", "bookmarks", "addresses", "creditcards", "forms", "history")
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,11 @@ def account_from_config(name: str, cfg: dict[str, Any]) -> Account:
     except KeyError as exc:
         raise SystemExit(f"Missing accounts.{name}.sessionfile in config") from exc
     return Account(name=name, sessionfile=Path(raw))
+
+
+def save_config(path: Path, cfg: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cfg, indent=2, sort_keys=False) + "\n")
 
 
 def run_ffs(
@@ -175,31 +181,32 @@ def collection_plan(
 
 def sync_collection(
     cfg: dict[str, Any],
-    main: Account,
-    second: Account,
+    source_account: Account,
+    target_account: Account,
     collection: str,
     opts: dict[str, Any],
     max_writes: int | None,
+    dry_run: bool,
 ) -> int:
     sync_deletes = bool(opts.get("sync_deletes", False))
-    dry_run = bool(cfg.get("dry_run", True))
 
-    main_records = list_records(cfg, main, collection)
-    second_records = list_records(cfg, second, collection)
+    source_records = list_records(cfg, source_account, collection)
+    target_records = list_records(cfg, target_account, collection)
 
     actions: list[tuple[Account, Record, str]] = []
     for target_name, record, reason in collection_plan(
-        collection, main.name, second.name, main_records, second_records, sync_deletes
+        collection,
+        source_account.name,
+        target_account.name,
+        source_records,
+        target_records,
+        sync_deletes,
     ):
-        actions.append((second if target_name == second.name else main, record, reason))
-    for target_name, record, reason in collection_plan(
-        collection, second.name, main.name, second_records, main_records, sync_deletes
-    ):
-        actions.append((main if target_name == main.name else second, record, reason))
+        actions.append((target_account, record, reason))
 
     print(
-        f"{collection}: main={len(main_records)} second={len(second_records)} "
-        f"actions={len(actions)} dry_run={dry_run}",
+        f"{source_account.name}->{target_account.name} {collection}: "
+        f"source={len(source_records)} target={len(target_records)} actions={len(actions)} dry_run={dry_run}",
         flush=True,
     )
 
@@ -222,40 +229,84 @@ def sync_collection(
     return len(planned)
 
 
+def enabled_route_collections(route: dict[str, Any], cfg: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    selected = route.get("collections")
+    global_collections = cfg.get("collections", {})
+    collections: dict[str, dict[str, Any]] = {}
+
+    for name in DEFAULT_COLLECTIONS:
+        global_opts = dict(global_collections.get(name, {}))
+        if selected is None:
+            enabled = bool(global_opts.get("enabled", False))
+        elif isinstance(selected, list):
+            enabled = name in selected
+        else:
+            enabled = bool(selected.get(name, False))
+        if enabled:
+            global_opts["enabled"] = True
+            collections[name] = global_opts
+    return collections
+
+
+def legacy_routes(cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "main-second",
+            "source": "main",
+            "target": "second",
+            "bidirectional": True,
+            "enabled": True,
+            "dry_run": None,
+            "collections": {
+                name: bool(opts.get("enabled", False))
+                for name, opts in cfg.get("collections", {}).items()
+            },
+        }
+    ]
+
+
 def run_once(
     cfg: dict[str, Any],
     only_collections: set[str] | None = None,
     max_writes: int | None = None,
 ) -> int:
-    main = account_from_config("main", cfg)
-    second = account_from_config("second", cfg)
+    accounts = {name: account_from_config(name, cfg) for name in cfg.get("accounts", {})}
 
-    for account in (main, second):
+    for account in accounts.values():
         refresh_session(cfg, account)
         check_session(cfg, account)
 
     total = 0
-    for collection, opts in cfg.get("collections", {}).items():
-        if only_collections is not None and collection not in only_collections:
+    routes = cfg.get("routes") or legacy_routes(cfg)
+    for route in routes:
+        if not route.get("enabled", True):
             continue
-        if not opts.get("enabled", False):
-            continue
-        total += sync_collection(cfg, main, second, collection, opts, max_writes)
+        source = accounts[route["source"]]
+        target = accounts[route["target"]]
+        dry_run = cfg.get("dry_run", True) if route.get("dry_run") is None else bool(route.get("dry_run"))
+        for collection, opts in enabled_route_collections(route, cfg).items():
+            if only_collections is not None and collection not in only_collections:
+                continue
+            total += sync_collection(cfg, source, target, collection, opts, max_writes, dry_run)
+            if route.get("bidirectional", False):
+                total += sync_collection(cfg, target, source, collection, opts, max_writes, dry_run)
     return total
 
 
 def run_loop(
+    config_path: Path,
     cfg: dict[str, Any],
     only_collections: set[str] | None = None,
     max_writes: int | None = None,
 ) -> None:
-    interval = int(cfg.get("poll_seconds", 300))
     while True:
         try:
+            cfg = load_config(config_path)
             total = run_once(cfg, only_collections, max_writes)
             print(f"sync pass complete: actions={total}", flush=True)
         except Exception as exc:
             print(f"sync pass failed: {exc}", file=sys.stderr, flush=True)
+        interval = int(cfg.get("poll_seconds", 300))
         time.sleep(interval)
 
 
@@ -307,7 +358,7 @@ def main() -> int:
             return 1
     if args.cmd == "loop":
         run_loop(
-            cfg, set(args.collection) if args.collection else None, args.max_writes
+            args.config, cfg, set(args.collection) if args.collection else None, args.max_writes
         )
         return 0
     raise AssertionError(args.cmd)

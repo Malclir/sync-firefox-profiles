@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync Firefox Profiles</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <div class="shell">
+    <header class="page-header">
+      <div>
+        <h1>Firefox Sync Bridge</h1>
+        <p>Route Firefox Sync collections between local Mozilla account sessions.</p>
+      </div>
+      <form method="post" action="{{ url_for('run_once') }}">
+        <button type="submit">Run Now</button>
+      </form>
+    </header>
+
+    {% if message %}
+      <div class="notice">{{ message }}</div>
+    {% endif %}
+
+    <section class="stats">
+      <article><span>Accounts</span><strong>{{ accounts|length }}</strong></article>
+      <article><span>Healthy</span><strong>{{ statuses.values()|select('equalto', 'ok')|list|length }}</strong></article>
+      <article><span>Routes</span><strong>{{ routes|length }}</strong></article>
+      <article><span>Mode</span><strong>{{ 'Dry Run' if cfg.get('dry_run', true) else 'Live' }}</strong></article>
+    </section>
+
+    <div class="layout">
+      <main>
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Routes</h2>
+              <p>Pick which collections move between accounts. Changes are read on the next poll.</p>
+            </div>
+            <form method="post" action="{{ url_for('add_route') }}">
+              <button class="secondary" type="submit">Add Route</button>
+            </form>
+          </div>
+
+          <form method="post" action="{{ url_for('save_routes') }}">
+            <div class="route-stack">
+              {% for route in routes %}
+                {% set idx = loop.index0 %}
+                <article class="route-card">
+                  <div class="route-head">
+                    <input class="route-name" name="route_name_{{ idx }}" value="{{ route.get('name', '') }}">
+                    <div class="pill-row">
+                      <label class="pill">
+                        <input type="checkbox" name="route_enabled_{{ idx }}" {% if route.get('enabled', true) %}checked{% endif %}>
+                        <span>Enabled</span>
+                      </label>
+                      <label class="pill">
+                        <input type="checkbox" name="route_bidirectional_{{ idx }}" {% if route.get('bidirectional', false) %}checked{% endif %}>
+                        <span>Two-way</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="route-grid">
+                    <label>Source
+                      <select name="route_source_{{ idx }}">
+                        {% for account in accounts.keys()|sort %}
+                          <option value="{{ account }}" {% if account == route.get('source') %}selected{% endif %}>{{ account }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                    <label>Target
+                      <select name="route_target_{{ idx }}">
+                        {% for account in accounts.keys()|sort %}
+                          <option value="{{ account }}" {% if account == route.get('target') %}selected{% endif %}>{{ account }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="collections">
+                    {% for collection in collections %}
+                      <label class="pill">
+                        <input type="checkbox" name="collection_{{ idx }}_{{ collection }}" {% if route.get('collections', {}).get(collection, false) %}checked{% endif %}>
+                        <span>{{ collection }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                </article>
+              {% else %}
+                <p class="empty">No routes configured.</p>
+              {% endfor %}
+            </div>
+            <button class="save-routes" type="submit">Save Routes</button>
+          </form>
+        </section>
+      </main>
+
+      <aside>
+        <section class="panel">
+          <h2>Settings</h2>
+          <form class="form-grid" method="post" action="{{ url_for('settings') }}">
+            <label>Poll seconds
+              <input type="number" name="poll_seconds" value="{{ cfg.get('poll_seconds', 300) }}" min="10">
+            </label>
+            <label class="pill fit">
+              <input type="checkbox" name="dry_run" {% if cfg.get('dry_run', true) %}checked{% endif %}>
+              <span>Dry run</span>
+            </label>
+            <button type="submit">Save Settings</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Accounts</h2>
+          <div class="account-list">
+            {% for name in accounts.keys()|sort %}
+              {% set status = statuses[name] %}
+              <article class="account-card">
+                <div>
+                  <h3>{{ name }}</h3>
+                  <p>{{ accounts[name].get('sessionfile', '') }}</p>
+                </div>
+                <span class="badge {{ status_class(status) }}">{{ status }}</span>
+                <form method="post" action="{{ url_for('remove_account') }}">
+                  <input type="hidden" name="name" value="{{ name }}">
+                  <button class="ghost" type="submit">Remove</button>
+                </form>
+              </article>
+            {% else %}
+              <p class="empty">No accounts configured.</p>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Add Account</h2>
+          <form class="form-grid" method="post" action="{{ url_for('add_account') }}">
+            <label>Account name
+              <input name="name" type="text" required placeholder="shopping">
+            </label>
+            <label>Email
+              <input name="email" type="email" required>
+            </label>
+            <label>Password
+              <input name="password" type="password" required>
+            </label>
+            <label>2FA code
+              <input name="otp" inputmode="numeric">
+            </label>
+            <button type="submit">Add and Login</button>
+          </form>
+        </section>
+
+        <p class="warning">Keep dry run on until planned actions look right.</p>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>

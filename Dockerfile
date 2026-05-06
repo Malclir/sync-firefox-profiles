@@ -19,8 +19,13 @@ COPY --from=ffsclient-builder /ffsclient /usr/local/bin/ffsclient
 RUN /usr/local/bin/ffsclient --version
 
 WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY bridge.py /app/bridge.py
 COPY bootstrap.py /app/bootstrap.py
+COPY portal.py /app/portal.py
+COPY templates /app/templates
+COPY static /app/static
 COPY config.example.json /app/config.example.json
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
